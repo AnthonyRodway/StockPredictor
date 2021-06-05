@@ -1,6 +1,7 @@
 pandas
-numpy
+numpy ~= 1.19.2
 sklearn
+tensorflow >= 2.2
 keras
 matplotlib
-
+launchpadlib ~= 1.10.13
