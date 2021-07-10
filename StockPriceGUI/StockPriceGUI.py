@@ -25,7 +25,7 @@ def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
 
 color_scheme = sg.theme('DarkTeal12')
 
-layout =    [[sg.Text('Opening and Closing Prices for the Tokyo Stock Exchange', 
+layout =    [[sg.Text('Opening and Closing Prices Predicted Using the Tokyo Stock Exchange', 
                 size=(50, 5), 
                 font=("Rockwell", 18), 
                 key='Title')], 
@@ -54,6 +54,7 @@ window.bind('<Configure>', "Resize")
 title = window['Title']
 plot_title = window["Plot Title"]
 plotcanvas = window['canvas']
+ret_canvas = None;
 
 # Create an event loop
 temp_scaler = MinMaxScaler(feature_range=(0, 1))
@@ -70,8 +71,9 @@ while True:
         continue
     elif event == "START PREDICTION" and num_trained > 0:
         print('Starting the Predictions!\n')
+        
         predictions, output_test, dates = GUI_helper_functions.predictStock(temp_model, temp_scaler, window['dropdownoption'].get())
-        GUI_helper_functions.graphStocks(plotcanvas.TKCanvas, predictions=predictions, actual=output_test, dates=dates)
+        ret_canvas = GUI_helper_functions.graphStocks(ret_canvas, plotcanvas.TKCanvas, predictions=predictions, actual=output_test, dates=dates)
         temp_string = window['dropdownoption'].get()
         plot_title.update(value=f'{temp_string}')
     elif event == "START PREDICTION" and num_trained <= 0:
@@ -84,15 +86,15 @@ while True:
         
         ret_model, ret_predictions, ret_output_test, ret_dates = GUI_helper_functions.main()
         temp_model = ret_model
-        GUI_helper_functions.graphStocks(plotcanvas.TKCanvas, predictions=ret_predictions, actual=ret_output_test, dates=ret_dates)
+        ret_canvas = GUI_helper_functions.graphStocks(ret_canvas, plotcanvas.TKCanvas, predictions=ret_predictions, actual=ret_output_test, dates=ret_dates)
         plot_title.update(value='Training Data Plot')
         window['TRAIN'].update(disabled=True)
         window['START PREDICTION'].update(disabled=False)
         window['SAVE IMAGE'].update(disabled=False)
     # elif event == 'Resize':
-        # if window.TKroot.state() == 'zoomed':
-        #     title.update(value='Window zoomed and maximized !')
-        # else:
-        #     title.update(value='Window normal')
+    #     if window.TKroot.state() == 'zoomed':
+    #         title.update(value='Window zoomed and maximized !')
+    #     else:
+    #         title.update(value='Window normal')
 
 window.close()

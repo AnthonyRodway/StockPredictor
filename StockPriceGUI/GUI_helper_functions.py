@@ -8,6 +8,7 @@ from numpy import array, sqrt, mean
 from datetime import date, timedelta
 from matplotlib import ticker
 import matplotlib.pyplot as plt
+import matplotlib as mp
 import yfinance as yf
 import tensorflow as tf
 
@@ -19,7 +20,11 @@ num_of_samples = 30
 
 #Description:
 #For graphing data.
-def graphStocks(canvas, predictions, actual, dates):
+def graphStocks(figure_canvas_agg, canvas, predictions, actual, dates):
+    if figure_canvas_agg != None:
+        figure_canvas_agg.get_tk_widget().forget()
+        plt.close('all')
+    
     #if len(predictions) != len(actual) or len(actual) != len(dates) or len(predictions) != len(dates):
     if not len(predictions) == len(actual) == len(dates):
         print("Parameters are not the same length: Predictions {}, Actual: {}, Dates: {}".format(len(predictions), len(actual), len(dates)))
@@ -60,7 +65,9 @@ def graphStocks(canvas, predictions, actual, dates):
 
     figure_canvas_agg = FigureCanvasTkAgg(fig, canvas)
     figure_canvas_agg.draw()
-    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
+    figure_canvas_agg.get_tk_widget().pack(side='left', fill='none', expand=0)
+
+    return figure_canvas_agg
 
 #Description:
 #Attempts to predict stock prices given a stock name and a date range.
