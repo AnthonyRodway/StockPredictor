@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
+from numpy.lib.function_base import average
 from pandas import read_csv
 from sklearn.preprocessing import MinMaxScaler
 from math import ceil, sqrt
@@ -10,7 +11,6 @@ from matplotlib import ticker
 import matplotlib.pyplot as mp
 import yfinance as yf
 import tensorflow as tf
-import sys
 
 #Global variables
 num_of_samples = 30
@@ -18,7 +18,7 @@ num_of_samples = 30
 #Description:
 #For graphing data.
 def graphStocks(predictions, actual, dates):
-    if len(predictions) != len(actual) or len(actual) != len(dates) or len(predictions) != len(dates):
+    if not (len(predictions) == len(actual) == len(dates)):
         print("Parameters are not the same length: Predictions {}, Actual: {}, Dates: {}".format(len(predictions), len(actual), len(dates)))
         return None
 
@@ -26,6 +26,7 @@ def graphStocks(predictions, actual, dates):
     actual_open = []
     predictions_close = []
     predictions_open = []
+
     for i in range(0, len(actual)):
         actual_close.append(actual[i, 1])
         actual_open.append(actual[i, 0])
@@ -36,21 +37,25 @@ def graphStocks(predictions, actual, dates):
 
     mp.locator_params(axis='x', nbins=8)
 
-    close_plot.plot(dates, actual_close, label='Actual Close Price')
-    close_plot.plot(dates, predictions_close, label='Predicted Close Price')
+    close_plot.plot(dates, predictions_close, label='Predicted Close Price', color='blue')
+    close_plot.plot(dates, actual_close, label='Actual Close Price', color='red')
     close_plot.set(xlabel='Date', ylabel='Price')
     close_plot.legend()
     close_plot.set_title("Closing Prices")
     close_plot.xaxis.set_major_locator(ticker.MaxNLocator(8))
 
-    open_plot.plot(dates, predictions_open, label='Predicted Open Price')
-    open_plot.plot(dates, actual_open, label='Actual Open Price')
+    open_plot.plot(dates, predictions_open, label='Predicted Open Price', color='blue')
+    open_plot.plot(dates, actual_open, label='Actual Open Price', color='red')
     open_plot.set(xlabel='Date', ylabel='Price')
     open_plot.legend()
     open_plot.set_title("Opening Prices")
     open_plot.xaxis.set_major_locator(ticker.MaxNLocator(8))
 
-    fig.show()
+    mp.setp(open_plot.get_xticklabels(), rotation=30, horizontalalignment='right')
+    mp.setp(close_plot.get_xticklabels(), rotation=30, horizontalalignment='right')
+
+    mp.tight_layout()
+    mp.show()
 
 #Description:
 #Attempts to predict stock prices given a stock name and a date range.
@@ -107,6 +112,23 @@ def predictStock(model, scaler, cmd):
     #Get predictions.
     predictions = model.predict(model_ready_data)
     predictions = scaler.inverse_transform(predictions)
+
+    close = predictions[:, 1]
+    open = predictions[:, 0]
+
+    #Checkout model performance.
+    rmse = sqrt( mean( open - actual_price_data[:, 0] )**2 )
+    print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse))
+
+    rmse = sqrt( mean( close - actual_price_data[:, 1] )**2 )
+    print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse))
+
+    percentError = average( abs( (open - actual_price_data[:, 0]) / open )) * 100
+    print("Average Percent Error for Open prices: {:.2f}%".format(percentError))
+
+    percentError = average( abs( (close - actual_price_data[:, 1]) / close )) * 100 
+    print("Average Percent Error for Close prices: {:.2f}%".format(percentError))
+
 
     #Graph results.
     graphStocks(predictions=predictions, actual=actual_price_data, dates=dates)
@@ -175,15 +197,21 @@ def main():
     predictions = scaler.inverse_transform(predictions)
     output_test = scaler.inverse_transform(output_test)
 
-    close = predictions[:, 1]
-    open = predictions[:, 0]
+    p_close = predictions[:, 1]
+    p_open = predictions[:, 0]
 
     #Checkout model performance.
-    rmse = sqrt( mean( open - output_test[:, 0] )**2 )
+    rmse = sqrt( mean( p_open - output_test[:, 0] )**2 )
     print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse))
 
-    rmse = sqrt( mean( close - output_test[:, 1] )**2 )
+    rmse = sqrt( mean( p_close - output_test[:, 1] )**2 )
     print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse))
+
+    percentError = average( abs( (p_open - output_test[:, 0]) / p_open )) * 100
+    print("Average Percent Error for Open prices: {:.2f}%".format(percentError))
+
+    percentError = average( abs( (p_close - output_test[:, 1]) / p_close )) * 100 
+    print("Average Percent Error for Close prices: {:.2f}%".format(percentError))
 
     #Prepare dates for plotting.
     dates = data.filter(['Date']).values
@@ -191,10 +219,15 @@ def main():
 
     graphStocks(predictions=predictions, actual=output_test, dates=dates[:, 0])
 
+    with open('test_commands', 'r') as file1:
+        commands = file1.readlines()
+    for line in commands:
+        predictStock(model, scaler, line.strip())
+
     #Evaluate performance on the requested stock.
     cmd =''
     while cmd != 'exit':
-        cmd = input(">>")
+        cmd = input("Input a stock to predict\n>>")
         if(cmd == 'exit'):
             return 0
         else:
