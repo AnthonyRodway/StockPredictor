@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
+from numpy.lib.function_base import average
 from pandas import read_csv
 from sklearn.preprocessing import MinMaxScaler
 from math import ceil, sqrt
@@ -8,7 +9,6 @@ from numpy import array, sqrt, mean
 from datetime import date, timedelta
 from matplotlib import ticker
 import matplotlib.pyplot as plt
-import matplotlib as mp
 import yfinance as yf
 import tensorflow as tf
 
@@ -17,6 +17,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 #Global variables
 num_of_samples = 30
+
+def show_plot():
+    plt.show()
 
 #Description:
 #For graphing data.
@@ -125,9 +128,25 @@ def predictStock(model, scaler, cmd):
     predictions = model.predict(model_ready_data)
     predictions = scaler.inverse_transform(predictions)
 
+    close = predictions[:, 1]
+    open = predictions[:, 0]
+
+    #Checkout model performance.
+    rmse_o = sqrt( mean( open - actual_price_data[:, 0] )**2 )
+    print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse_o))
+
+    rmse_c = sqrt( mean( close - actual_price_data[:, 1] )**2 )
+    print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse_c))
+
+    percentError_o = average( abs( (open - actual_price_data[:, 0]) / open )) * 100
+    print("Average Percent Error for Open prices: {:.2f}%".format(percentError_o))
+
+    percentError_c = average( abs( (close - actual_price_data[:, 1]) / close )) * 100 
+    print("Average Percent Error for Close prices: {:.2f}%".format(percentError_c))
+
     #Graph results.
     #graphStocks(predictions=predictions, actual=actual_price_data, dates=dates)
-    return predictions, actual_price_data, dates
+    return predictions, actual_price_data, dates, rmse_o, rmse_c, percentError_o, percentError_c
 
 #Description:
 #Predict opening and closing price using the past 30 days of data.
@@ -185,29 +204,35 @@ def main():
 
     #Get models predicted price values using the test data set.
     #Undo value scaling.
-    predictions = model.predict(input_test)
+    predictions = model.predict(input_test) #progress bar
     predictions = array(predictions)
-
-
+    
     #Evaluate model.
     predictions = scaler.inverse_transform(predictions)
     output_test = scaler.inverse_transform(output_test)
 
-    close = predictions[:, 1]
-    open = predictions[:, 0]
+    p_close = predictions[:, 1]
+    p_open = predictions[:, 0]
 
     #Checkout model performance.
-    rmse = sqrt( mean( open - output_test[:, 0] )**2 )
-    print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse))
+    rmse_o = sqrt( mean( p_open - output_test[:, 0] )**2 )
+    print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse_o))
 
-    rmse = sqrt( mean( close - output_test[:, 1] )**2 )
-    print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse))
+    rmse_c = sqrt( mean( p_close - output_test[:, 1] )**2 )
+    print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse_c))
+
+    #Get the percent errors
+    percentError_o = average( abs( (p_open - output_test[:, 0]) / p_open )) * 100
+    print("Average Percent Error for Open prices: {:.2f}%".format(percentError_o))
+
+    percentError_c = average( abs( (p_close - output_test[:, 1]) / p_close )) * 100 
+    print("Average Percent Error for Close prices: {:.2f}%".format(percentError_c))
 
     #Prepare dates for plotting.
     dates = data.filter(['Date']).values
     dates = array(dates[len(dates) - len(predictions):, :])
 
-    return model, predictions, output_test, dates[:, 0]
+    return model, predictions, output_test, dates[:, 0], rmse_o, rmse_c, percentError_o, percentError_c
     
 if __name__ == "__main__":
     #Encountered errors with tensor flow asking for too much memory.
