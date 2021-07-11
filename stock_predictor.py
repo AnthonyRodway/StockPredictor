@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
+from numpy.lib.function_base import average
 from pandas import read_csv
 from sklearn.preprocessing import MinMaxScaler
 from math import ceil, sqrt
@@ -49,8 +50,7 @@ def graphStocks(predictions, actual, dates):
     open_plot.legend()
     open_plot.set_title("Opening Prices")
     open_plot.xaxis.set_major_locator(ticker.MaxNLocator(8))
-
-    fig.show()
+    mp.show()
 
 #Description:
 #Attempts to predict stock prices given a stock name and a date range.
@@ -107,6 +107,22 @@ def predictStock(model, scaler, cmd):
     #Get predictions.
     predictions = model.predict(model_ready_data)
     predictions = scaler.inverse_transform(predictions)
+
+    close = predictions[:, 1]
+    open = predictions[:, 0]
+
+    #Checkout model performance.
+    rmse = sqrt( mean( open - actual_price_data[:, 0] )**2 )
+    print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse))
+
+    rmse = sqrt( mean( close - actual_price_data[:, 1] )**2 )
+    print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse))
+
+    percentError = average( abs( (open - actual_price_data[:, 0]) / open )) * 100
+    print("Average Percent Error for Open prices: {:.2f}%".format(percentError))
+
+    percentError = average( abs( (close - actual_price_data[:, 1]) / close )) * 100 
+    print("Average Percent Error for Close prices: {:.2f}%".format(percentError))
 
     #Graph results.
     graphStocks(predictions=predictions, actual=actual_price_data, dates=dates)
@@ -176,20 +192,31 @@ def main():
     output_test = scaler.inverse_transform(output_test)
 
     close = predictions[:, 1]
-    open = predictions[:, 0]
+    open1 = predictions[:, 0]
 
     #Checkout model performance.
-    rmse = sqrt( mean( open - output_test[:, 0] )**2 )
+    rmse = sqrt( mean( open1 - output_test[:, 0] )**2 )
     print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse))
 
     rmse = sqrt( mean( close - output_test[:, 1] )**2 )
     print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse))
+
+    percentError = average( abs( (open1 - output_test[:, 0]) / open1 )) * 100
+    print("Average Percent Error for Open prices: {:.2f}%".format(percentError))
+
+    percentError = average( abs( (close - output_test[:, 1]) / close )) * 100 
+    print("Average Percent Error for Close prices: {:.2f}%".format(percentError))
 
     #Prepare dates for plotting.
     dates = data.filter(['Date']).values
     dates = array(dates[len(dates) - len(predictions):, :])
 
     graphStocks(predictions=predictions, actual=output_test, dates=dates[:, 0])
+
+    with open('test_commands', 'r') as file1:
+        commands = file1.readlines()
+    for line in commands:
+        predictStock(model, scaler, line.strip())
 
     #Evaluate performance on the requested stock.
     cmd =''
