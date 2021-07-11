@@ -129,7 +129,6 @@ def predictStock(model, scaler, cmd):
     percentError = average( abs( (close - actual_price_data[:, 1]) / close )) * 100 
     print("Average Percent Error for Close prices: {:.2f}%".format(percentError))
 
-
     #Graph results.
     graphStocks(predictions=predictions, actual=actual_price_data, dates=dates)
 
@@ -196,6 +195,7 @@ def main():
     #Evaluate model.
     predictions = scaler.inverse_transform(predictions)
     output_test = scaler.inverse_transform(output_test)
+
 
     p_close = predictions[:, 1]
     p_open = predictions[:, 0]
