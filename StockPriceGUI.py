@@ -1,13 +1,14 @@
+#!/usr/bin/python3
 import PySimpleGUI as sg
 import os
-from PySimpleGUI.PySimpleGUI import ToolTip
+from PySimpleGUI import ToolTip
 from matplotlib.backend_bases import MouseEvent
 import matplotlib.pyplot as plt
 from numpy.core.shape_base import block
 from sklearn.preprocessing import MinMaxScaler
-from keras.models import Sequential
 import requests
 from button_icon.output import q2
+from classes.StockPredictorModel import StockPredictorModel
 
 # Helper functions are the same as in sotck_predictor.py just modified to work with the GUI
 import GUI_helper_functions
@@ -130,7 +131,7 @@ plot_stats = window['stats']
 
 ret_canvas = None
 temp_scaler = MinMaxScaler(feature_range=(0, 1))
-temp_model = Sequential()
+temp_model = StockPredictorModel()
 saved_figure = False
 
 # Create an event loop
