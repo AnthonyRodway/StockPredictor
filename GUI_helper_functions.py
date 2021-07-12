@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from keras.models import Sequential
 from keras.layers import Dense, LSTM
 from numpy.lib.function_base import average
 from pandas import read_csv
@@ -8,17 +9,28 @@ from numpy import array, sqrt, mean
 from datetime import date, timedelta
 from matplotlib import ticker
 from classes.StockPredictorModel import StockPredictorModel
-import matplotlib.pyplot as mp
+import matplotlib.pyplot as plt
 import yfinance as yf
 import tensorflow as tf
+
+# Note the matplot tk canvas import
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 #Global variables
 num_of_samples = 30
 
+def show_plot():
+    plt.show()
+
 #Description:
 #For graphing data.
-def graphStocks(predictions, actual, dates):
-    if not (len(predictions) == len(actual) == len(dates)):
+def graphStocks(figure_canvas_agg, canvas, predictions, actual, dates):
+    if figure_canvas_agg != None:
+        figure_canvas_agg.get_tk_widget().forget()
+        plt.close('all')
+    
+    #if len(predictions) != len(actual) or len(actual) != len(dates) or len(predictions) != len(dates):
+    if not len(predictions) == len(actual) == len(dates):
         print("Parameters are not the same length: Predictions {}, Actual: {}, Dates: {}".format(len(predictions), len(actual), len(dates)))
         return None
 
@@ -33,9 +45,9 @@ def graphStocks(predictions, actual, dates):
         predictions_close.append(predictions[i, 1])
         predictions_open.append(predictions[i, 0])
 
-    fig, (open_plot, close_plot) = mp.subplots(2)
+    fig, (open_plot, close_plot) = plt.subplots(2)
 
-    mp.locator_params(axis='x', nbins=8)
+    plt.locator_params(axis='x', nbins=8)
 
     close_plot.plot(dates, predictions_close, label='Predicted Close Price', color='blue')
     close_plot.plot(dates, actual_close, label='Actual Close Price', color='red')
@@ -51,11 +63,15 @@ def graphStocks(predictions, actual, dates):
     open_plot.set_title("Opening Prices")
     open_plot.xaxis.set_major_locator(ticker.MaxNLocator(8))
 
-    mp.setp(open_plot.get_xticklabels(), rotation=30, horizontalalignment='right')
-    mp.setp(close_plot.get_xticklabels(), rotation=30, horizontalalignment='right')
+    plt.setp(open_plot.get_xticklabels(), rotation=30, horizontalalignment='right')
+    plt.setp(close_plot.get_xticklabels(), rotation=30, horizontalalignment='right')
+    fig.tight_layout()
 
-    mp.tight_layout()
-    mp.show()
+    figure_canvas_agg = FigureCanvasTkAgg(fig, canvas)
+    figure_canvas_agg.draw()
+    figure_canvas_agg.get_tk_widget().pack(side='left', fill='none', expand=0)
+
+    return figure_canvas_agg
 
 #Description:
 #Attempts to predict stock prices given a stock name and a date range.
@@ -117,20 +133,21 @@ def predictStock(model, scaler, cmd):
     open = predictions[:, 0]
 
     #Checkout model performance.
-    rmse = sqrt( mean( open - actual_price_data[:, 0] )**2 )
-    print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse))
+    rmse_o = sqrt( mean( open - actual_price_data[:, 0] )**2 )
+    print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse_o))
 
-    rmse = sqrt( mean( close - actual_price_data[:, 1] )**2 )
-    print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse))
+    rmse_c = sqrt( mean( close - actual_price_data[:, 1] )**2 )
+    print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse_c))
 
-    percentError = average( abs( (open - actual_price_data[:, 0]) / open )) * 100
-    print("Average Percent Error for Open prices: {:.2f}%".format(percentError))
+    percentError_o = average( abs( (open - actual_price_data[:, 0]) / open )) * 100
+    print("Average Percent Error for Open prices: {:.2f}%".format(percentError_o))
 
-    percentError = average( abs( (close - actual_price_data[:, 1]) / close )) * 100 
-    print("Average Percent Error for Close prices: {:.2f}%".format(percentError))
+    percentError_c = average( abs( (close - actual_price_data[:, 1]) / close )) * 100 
+    print("Average Percent Error for Close prices: {:.2f}%".format(percentError_c))
 
     #Graph results.
-    graphStocks(predictions=predictions, actual=actual_price_data, dates=dates)
+    #graphStocks(predictions=predictions, actual=actual_price_data, dates=dates)
+    return predictions, actual_price_data, dates, rmse_o, rmse_c, percentError_o, percentError_c
 
 #Description:
 #Predict opening and closing price using the past 30 days of data.
@@ -185,51 +202,36 @@ def main():
 
     #Get models predicted price values using the test data set.
     #Undo value scaling.
-    predictions = model.predict(input_test)
+    predictions = model.predict(input_test) #progress bar
     predictions = array(predictions)
-
-
+    
     #Evaluate model.
     predictions = scaler.inverse_transform(predictions)
     output_test = scaler.inverse_transform(output_test)
-
 
     p_close = predictions[:, 1]
     p_open = predictions[:, 0]
 
     #Checkout model performance.
-    rmse = sqrt( mean( p_open - output_test[:, 0] )**2 )
-    print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse))
+    rmse_o = sqrt( mean( p_open - output_test[:, 0] )**2 )
+    print("Root Mean Squared Error for Open prices: {:.2f}".format(rmse_o))
 
-    rmse = sqrt( mean( p_close - output_test[:, 1] )**2 )
-    print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse))
+    rmse_c = sqrt( mean( p_close - output_test[:, 1] )**2 )
+    print("Root Mean Squared Error for Close prices: {:.2f}".format(rmse_c))
 
-    percentError = average( abs( (p_open - output_test[:, 0]) / p_open )) * 100
-    print("Average Percent Error for Open prices: {:.2f}%".format(percentError))
+    #Get the percent errors
+    percentError_o = average( abs( (p_open - output_test[:, 0]) / p_open )) * 100
+    print("Average Percent Error for Open prices: {:.2f}%".format(percentError_o))
 
-    percentError = average( abs( (p_close - output_test[:, 1]) / p_close )) * 100 
-    print("Average Percent Error for Close prices: {:.2f}%".format(percentError))
+    percentError_c = average( abs( (p_close - output_test[:, 1]) / p_close )) * 100 
+    print("Average Percent Error for Close prices: {:.2f}%".format(percentError_c))
 
     #Prepare dates for plotting.
     dates = data.filter(['Date']).values
     dates = array(dates[len(dates) - len(predictions):, :])
 
-    graphStocks(predictions=predictions, actual=output_test, dates=dates[:, 0])
-
-    with open('test_commands', 'r') as file1:
-        commands = file1.readlines()
-    for line in commands:
-        predictStock(model, scaler, line.strip())
-
-    #Evaluate performance on the requested stock.
-    cmd =''
-    while cmd != 'exit':
-        cmd = input("Input a stock to predict\n>>")
-        if(cmd == 'exit'):
-            return 0
-        else:
-            predictStock(model, scaler, cmd)
-
+    return model, predictions, output_test, dates[:, 0], rmse_o, rmse_c, percentError_o, percentError_c
+    
 if __name__ == "__main__":
     #Encountered errors with tensor flow asking for too much memory.
     #Code taken from: https://www.tensorflow.org/api_docs/python/tf/config/experimental/set_memory_growth
