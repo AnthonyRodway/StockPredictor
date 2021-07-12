@@ -8,6 +8,7 @@ from math import ceil, sqrt
 from numpy import array, sqrt, mean
 from datetime import date, timedelta
 from matplotlib import ticker
+from .classes.StockPredictorModel import StockPredictorModel
 import matplotlib.pyplot as plt
 import yfinance as yf
 import tensorflow as tf
@@ -152,8 +153,8 @@ def predictStock(model, scaler, cmd):
 #Predict opening and closing price using the past 30 days of data.
 def main():
     #Read in datasets and combine them.
-    data_2012_2016 = read_csv('../Uniqlo(FastRetailing) 2012-2016 Training - stocks2012-2016.csv')
-    data_2017 = read_csv('../Uniqlo(FastRetailing) 2017 Test - stocks2017.csv')
+    data_2012_2016 = read_csv('Uniqlo(FastRetailing) 2012-2016 Training - stocks2012-2016.csv')
+    data_2017 = read_csv('Uniqlo(FastRetailing) 2017 Test - stocks2017.csv')
     data = data_2012_2016.append(data_2017)
 
     #Create data frames and convert to numpy arrays.
@@ -190,17 +191,14 @@ def main():
     output_test = array(output_test)
 
     #Build LSTM model.
-    model = Sequential()
-    model.add(LSTM(50, return_sequences=True))
-    model.add(LSTM(50, return_sequences=False))
-    model.add(Dense(25))
-    model.add(Dense(2))
+    model = StockPredictorModel()
+    model.addLayers()
 
     #Compile the model
-    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.compileModel()
 
     #Train the model
-    model.fit(input_train, output_train, batch_size=1, epochs=1)
+    model.fitModel(input_train, output_train)
 
     #Get models predicted price values using the test data set.
     #Undo value scaling.
