@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from keras.models import Sequential
 from keras.layers import Dense, LSTM
 from numpy.lib.function_base import average
 from pandas import read_csv
@@ -8,6 +7,7 @@ from math import ceil, sqrt
 from numpy import array, sqrt, mean
 from datetime import date, timedelta
 from matplotlib import ticker
+from StockPriceGUI.classes.StockPredictorModel import StockPredictorModel
 import matplotlib.pyplot as mp
 import yfinance as yf
 import tensorflow as tf
@@ -174,17 +174,14 @@ def main():
     output_test = array(output_test)
 
     #Build LSTM model.
-    model = Sequential()
-    model.add(LSTM(50, return_sequences=True))
-    model.add(LSTM(50, return_sequences=False))
-    model.add(Dense(25))
-    model.add(Dense(2))
+    model = StockPredictorModel()
+    model.addLayers()
 
     #Compile the model
-    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.compileModel()
 
     #Train the model
-    model.fit(input_train, output_train, batch_size=1, epochs=1)
+    model.fitModel(input_train, output_train)
 
     #Get models predicted price values using the test data set.
     #Undo value scaling.
