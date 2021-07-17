@@ -13,9 +13,6 @@ from classes.StockPredictorModel import StockPredictorModel
 # Helper functions are the same as in sotck_predictor.py just modified to work with the GUI
 import GUI_helper_functions
 
-def IButton(*args, **kwargs):
-    return sg.Col([[sg.Button(*args, **kwargs)]], pad=(0,0))
-
 # \\  -------- FUNCTION TO GET COMPANY NAME FROM STOCK TAG -------- //
 # Reference: https://newbedev.com/retrieve-company-name-with-ticker-symbol-input-yahoo-or-google-api
 
@@ -48,7 +45,8 @@ info_tooltip = '''
                 (it should take roughly ~20sec to gather data and train)\n
                 2. You can view the newly generated plot and either save the image 
                 with the "Save Image" button, or pop the plot out to a new window
-                with the "Popout Image" button that appears with the plot.\n
+                with the "Popout Image" button that appears with the plot. The Popout
+                option will automatically save the image before appearing in a new window\n
                 3. Next you can choose to either select one of the example stocks
                 or write in a different stock following the provided format, aftwards 
                 you will lick the "Start Prediction" button which do all of the 
